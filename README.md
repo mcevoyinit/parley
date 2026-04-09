@@ -41,14 +41,25 @@ from parley.server import tiered, get_tier_from_memo, build_402_body
     {"name": "fast",   "price": "0.01", "latency_ms": 100, "model": "llama-3"},
     {"name": "batch",  "price": "0.002", "latency_ms": 2000, "model": "llama-3"},
 ])
-async def inference(request, tier, credential, receipt):
-    return run_model(tier["model"], request.json())
+async def inference(request):
+    # Before payment: return a 402 with the tier menu
+    if not request.is_paid:
+        body = build_402_body(inference._parley_tiers_payload, inference._parley_default)
+        return JSONResponse(body, status_code=402)
+
+    # After payment: resolve which tier the agent selected
+    tier = get_tier_from_memo(request.memo, inference._parley_tiers)
+    return run_model(tier.model, request.json())
 ```
 
-The `@tiered` decorator:
-- Adds `parley_tiers` to the 402 response body
-- Sets standard MPP `amount` to the default tier's price (vanilla compatibility)
-- Reads the selected tier from the payment memo
+The `@tiered` decorator attaches tier metadata to the handler function:
+- `handler._parley_tiers` — list of validated `Tier` objects
+- `handler._parley_default` — the default `Tier` (vanilla MPP fallback)
+- `handler._parley_tiers_payload` — serialized tier dicts for the 402 body
+
+Your handler calls the utility functions directly:
+- `build_402_body(tiers_payload, default_tier)` — builds the 402 response with `amount` set to the default tier's price and `parley_tiers` containing the full menu
+- `get_tier_from_memo(memo, tiers)` — reads `parley_tier=<name>` from the payment memo and returns the matching `Tier` (falls back to default if missing or unknown)
 
 ## Agent (Client Side)
 

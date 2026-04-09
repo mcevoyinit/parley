@@ -18,7 +18,7 @@ def tiered(
     tiers: list[dict[str, Any] | Tier],
 ) -> Callable:
     """
-    Decorator that adds tiered pricing to an MPP endpoint.
+    Decorator that attaches tiered pricing metadata to an MPP endpoint handler.
 
     Usage:
         @app.get("/inference")
@@ -26,14 +26,19 @@ def tiered(
             {"name": "turbo", "price": "0.05", "latency_ms": 200, "model": "gpt-4", "default": True},
             {"name": "fast", "price": "0.01", "latency_ms": 100, "model": "llama-3"},
         ])
-        async def inference(request, tier, **kwargs):
-            return run_model(tier["model"], request.json())
+        async def inference(request):
+            if not request.is_paid:
+                body = build_402_body(inference._parley_tiers_payload, inference._parley_default)
+                return JSONResponse(body, status_code=402)
+            tier = get_tier_from_memo(request.memo, inference._parley_tiers)
+            return run_model(tier.model, request.json())
 
-    Behavior:
-        - Injects `parley_tiers` into the 402 response body
-        - Sets standard MPP `amount` to the default tier's price
-        - Reads `parley_tier=<name>` from payment memo to route to selected tier
-        - Passes the selected tier dict to the handler as `tier` kwarg
+    Attaches to the handler function:
+        - handler._parley_tiers: list of validated Tier objects
+        - handler._parley_default: the default Tier
+        - handler._parley_tiers_payload: serialized tier dicts for 402 body
+
+    The handler calls build_402_body() and get_tier_from_memo() directly.
     """
     tier_objects = [
         t if isinstance(t, Tier) else Tier.from_dict(t)
