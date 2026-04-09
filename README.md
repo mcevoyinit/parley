@@ -1,8 +1,8 @@
 # Parley
 
-**Tiered pricing extension for [MPP](https://mpp.dev/overview) (Machine Payments Protocol)**
+> *par·ley* — a negotiation between opposing sides; to discuss terms.
 
-Agents pick the best deal from a menu. Built on [`pympp`](https://pypi.org/project/pympp/).
+Tiered pricing extension for [MPP](https://mpp.dev/overview) (Machine Payments Protocol). Agents pick the best deal from a menu. Built on [`pympp`](https://pypi.org/project/pympp/).
 
 ## The Problem
 
