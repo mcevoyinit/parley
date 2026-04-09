@@ -20,6 +20,13 @@ class Tier:
     model: str | None = None
     description: str | None = None
 
+    def __post_init__(self) -> None:
+        if not self.name or not self.name.strip():
+            raise ValueError("Tier name must be a non-empty string")
+        d = Decimal(self.price)
+        if d.is_nan() or d.is_infinite() or d < 0:
+            raise ValueError(f"Tier price must be a non-negative finite number, got '{self.price}'")
+
     @property
     def price_decimal(self) -> Decimal:
         return Decimal(self.price)

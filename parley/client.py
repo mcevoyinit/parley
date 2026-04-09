@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 from typing import Any
 
+from decimal import Decimal
+
 from .types import Tier, Constraints
 from .matcher import select_tier, get_default_tier
 from .server import PARLEY_TIERS_KEY, PARLEY_MEMO_PREFIX
@@ -12,10 +14,10 @@ from .server import PARLEY_TIERS_KEY, PARLEY_MEMO_PREFIX
 
 class ParleyAgent:
     """
-    MPP client that auto-selects the optimal service tier.
+    Agent-side tier selection from MPP 402 response bodies.
 
-    Wraps httpx (and can wrap pympp Client) to intercept 402 responses,
-    parse tier menus, and select the best tier based on constraints.
+    Parses tier menus from 402 response dicts and selects the optimal
+    tier based on budget, latency, and preference constraints.
 
     Usage:
         agent = ParleyAgent(budget="0.02", max_latency_ms=500)
@@ -34,6 +36,12 @@ class ParleyAgent:
             max_latency_ms=max_latency_ms,
             prefer=prefer,
         )
+        if budget is not None:
+            d = Decimal(budget)
+            if d.is_nan() or d.is_infinite() or d < 0:
+                raise ValueError(f"budget must be a non-negative finite number, got '{budget}'")
+        if max_latency_ms is not None and max_latency_ms <= 0:
+            raise ValueError(f"max_latency_ms must be positive, got {max_latency_ms}")
 
     def parse_tiers(self, response_body: dict[str, Any]) -> list[Tier] | None:
         """Parse tier menu from a 402 response body. Returns None if no tiers present."""

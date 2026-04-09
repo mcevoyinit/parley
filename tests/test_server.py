@@ -69,6 +69,17 @@ class TestTieredDecorator:
         assert len(handler._parley_tiers) == 2
 
 
+class TestTieredSyncHandler:
+
+    def test_tiered_sync_handler(self):
+        tiers = [Tier(name="basic", price="0.01", default=True)]
+        @tiered(tiers=tiers)
+        def sync_handler():
+            return {"ok": True}
+        assert sync_handler() == {"ok": True}
+        assert hasattr(sync_handler, "_parley_tiers")
+
+
 class TestMemoExtraction:
 
     def test_valid_memo(self):

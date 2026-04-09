@@ -49,15 +49,22 @@ def tiered(
     default_tier = get_default_tier(tier_objects)
     tiers_payload = [t.to_dict() for t in tier_objects]
 
-    def decorator(func: Callable[..., Awaitable[Any]]) -> Callable[..., Awaitable[Any]]:
+    def decorator(func: Callable) -> Callable:
+        import inspect
+
         # Store tier metadata on the function for introspection
         func._parley_tiers = tier_objects  # type: ignore[attr-defined]
         func._parley_default = default_tier  # type: ignore[attr-defined]
         func._parley_tiers_payload = tiers_payload  # type: ignore[attr-defined]
 
-        @functools.wraps(func)
-        async def wrapper(*args: Any, **kwargs: Any) -> Any:
-            return await func(*args, **kwargs)
+        if inspect.iscoroutinefunction(func):
+            @functools.wraps(func)
+            async def wrapper(*args: Any, **kwargs: Any) -> Any:
+                return await func(*args, **kwargs)
+        else:
+            @functools.wraps(func)
+            def wrapper(*args: Any, **kwargs: Any) -> Any:
+                return func(*args, **kwargs)
 
         # Copy parley metadata to wrapper
         wrapper._parley_tiers = tier_objects  # type: ignore[attr-defined]
