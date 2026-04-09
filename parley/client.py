@@ -5,8 +5,6 @@ from __future__ import annotations
 import json
 from typing import Any
 
-import httpx
-
 from .types import Tier, Constraints
 from .matcher import select_tier, get_default_tier
 from .server import PARLEY_TIERS_KEY, PARLEY_MEMO_PREFIX
